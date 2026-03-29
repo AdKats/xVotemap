@@ -404,7 +404,7 @@ namespace PRoConEvents
 
         public String GetPluginAuthor()
         {
-            return "onegrizzlybeer/grizzlybeer, Hexacanon EG modification, Hand of Shadow, versions <=1.3.1 by aether";
+            return "onegrizzlybeer/grizzlybeer, Hexacanon EG modification, Hand of Shadow, versions <=1.3.1 by aether (maintained by Prophet731)";
         }
 
         public String GetPluginWebsite()
