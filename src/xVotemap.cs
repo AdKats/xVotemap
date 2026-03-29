@@ -14,15 +14,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.IO;
 using System.Net;
-using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 //using System.Drawing;
-
 
 using PRoCon.Core;
 using PRoCon.Core.Battlemap;
@@ -102,7 +96,6 @@ namespace PRoConEvents
         private Boolean nextmapShown = false;
         private enumBoolYesNo disableVoteResults = enumBoolYesNo.No;
 
-
         //string m_strLastMessage = "";
 
         private DateTime m_timeVoteStart;
@@ -115,7 +108,7 @@ namespace PRoConEvents
         private Int32 ticketCounter = 100;
         private Int32 currentMcom = 0;
 
-        private Dictionary<char, Double> m_dictLetterSizes = new Dictionary<char, Double>();
+        private Dictionary<Char, Double> m_dictLetterSizes = new Dictionary<Char, Double>();
 
         private enumBoolYesNo syncreservedslots = enumBoolYesNo.Yes;
         private List<String> vips = new List<String>();
@@ -1107,7 +1100,7 @@ namespace PRoConEvents
             StopVotingSystem();
         }
 
-        public void OnListPlayers(List<CPlayerInfo> lstPlayers, CPlayerSubset cpsSubset)
+        public override void OnListPlayers(List<CPlayerInfo> lstPlayers, CPlayerSubset cpsSubset)
         {
             this.m_iCurrPlayerCount = lstPlayers.Count;
             foreach (CPlayerInfo player in lstPlayers)
@@ -1117,13 +1110,13 @@ namespace PRoConEvents
             WritePluginConsole("There are " + m_players.Count + " players in the db.", "Info", 5);
         }
 
-        public void OnPlayerLeft(CPlayerInfo playerInfo)
+        public override void OnPlayerLeft(CPlayerInfo playerInfo)
         {
             m_players.Remove(playerInfo.SoldierName);
             WritePluginConsole(playerInfo.SoldierName + " removed from the db.", "Info", 5);
         }
 
-        public void OnServerInfo(CServerInfo csiServerInfo)
+        public override void OnServerInfo(CServerInfo csiServerInfo)
         {
             DateTime timehelper = lastcheck.AddSeconds(59.0);
             if (DateTime.Compare(timehelper, DateTime.Now) <= 0)
@@ -1183,7 +1176,6 @@ namespace PRoConEvents
                     }
 
                     SetVoteStartAndEndTimes();
-
 
                     WritePluginConsole("Voting system enabled?: " + m_boolVotingSystemEnabled.ToString(), "Info", 5);
                     WritePluginConsole("Current player count is: " + csiServerInfo.PlayerCount, "Info", 5);
@@ -1263,13 +1255,13 @@ namespace PRoConEvents
             }
         }
 
-        public void OnGameModeCounter(Int32 limit)
+        public override void OnGameModeCounter(Int32 limit)
         {
             WritePluginConsole("Setting ticketCounter to " + limit, "Info", 5);
             this.ticketCounter = limit;
         }
 
-        public void OnMaplistList(List<MaplistEntry> lstMaplist)
+        public override void OnMaplistList(List<MaplistEntry> lstMaplist)
         {
             try
             {
@@ -1293,7 +1285,7 @@ namespace PRoConEvents
             WritePluginConsole("Maplist updated. There are " + m_listCurrMapList.Count + " maps currently in the maplist", "Info", 5);
         }
 
-        public void OnMaplistGetMapIndices(Int32 mapIndex, Int32 nextIndex)
+        public override void OnMaplistGetMapIndices(Int32 mapIndex, Int32 nextIndex)
         {
             this.m_iCurrMapIndex = mapIndex;
             this.m_iNextMapIndex = nextIndex;
@@ -1305,22 +1297,22 @@ namespace PRoConEvents
             }
         }
 
-        public void OnGlobalChat(String speaker, String message)
+        public override void OnGlobalChat(String speaker, String message)
         {
             ProcessChatMessage(speaker, message);
         }
 
-        public void OnTeamChat(String speaker, String message, Int32 teamId)
+        public override void OnTeamChat(String speaker, String message, Int32 teamId)
         {
             ProcessChatMessage(speaker, message);
         }
 
-        public void OnSquadChat(String speaker, String message, Int32 teamId, Int32 squadId)
+        public override void OnSquadChat(String speaker, String message, Int32 teamId, Int32 squadId)
         {
             ProcessChatMessage(speaker, message);
         }
 
-        public void OnRoundOver(Int32 winningTeamId)
+        public override void OnRoundOver(Int32 winningTeamId)
         {
             WritePluginConsole("Round Over: Stopping voting system", "Work", 3);
             if (m_boolVotingStarted && m_boolVotingSystemEnabled)
@@ -1335,7 +1327,7 @@ namespace PRoConEvents
 
         }
 
-        public void OnLevelLoaded(String mapFileName, String Gamemode, Int32 roundsPlayed, Int32 roundsTotal)
+        public override void OnLevelLoaded(String mapFileName, String Gamemode, Int32 roundsPlayed, Int32 roundsTotal)
         {
             //this.ExecuteCommand("procon.protected.pluginconsole.write", mapFileName + Gamemode + roundsPlayed.ToString() + roundsTotal.ToString());
             WritePluginConsole("Level loaded: ^6" + GetMapByFilename(mapFileName).PublicLevelName + " " + ConvertGamemodeToShorthand(Gamemode) + "^0, Round " + (roundsPlayed + 1).ToString() + " of " + roundsTotal.ToString(), "Info", 3);
@@ -1364,13 +1356,13 @@ namespace PRoConEvents
 
         }
 
-        public void OnRestartLevel()
+        public override void OnRestartLevel()
         {
             WritePluginConsole("Level Restarted: Stopping voting system", "Work", 3);
             StopVotingSystem();
         }
 
-        public void OnRunNextLevel()
+        public override void OnRunNextLevel()
         {
             WritePluginConsole("Skipped Level: Stopping voting system", "Work", 3);
             if (m_boolVotingStarted && m_boolVotingSystemEnabled)
@@ -1466,7 +1458,6 @@ namespace PRoConEvents
                 if (m_strCurrentGameMode.Contains("Conquest") || m_strCurrentGameMode.Contains("DeathMatch") || m_strCurrentGameMode.Contains("Domination") || m_strCurrentGameMode.Contains("Superiority") || m_strCurrentGameMode.Contains("Scavenger") || m_strCurrentGameMode.Contains("Obliteration") || m_strCurrentGameMode.Contains("Chainlink0"))
                 {
 
-
                     if (m_strCurrentGameMode.Contains("TeamDeathMatch"))
                     {
                         winningScore = ticketCounter;
@@ -1475,7 +1466,6 @@ namespace PRoConEvents
                     {
                         winningScore = ticketCounter / 2;
                     }
-
 
                     Int32 timeToEnd = 9999;
                     if (m_iPrevTicket != null)
@@ -1488,15 +1478,12 @@ namespace PRoConEvents
 
                             //WritePluginConsole("am", "Info", 5);
 
-
                             TimeSpan tspan = DateTime.Now - m_timePrevious;
 
                             //WritePluginConsole("a", "Info", 5);
 
-
                             Double[] timeRemaining = new Double[m_listCurrTeamScore.Count];
                             //double[] timeRemaining = new double[numteams];
-
 
                             for (Int32 i = 0; i < m_listCurrTeamScore.Count; i++)
                             //for (int i = 0; i < numteams; i++)
@@ -1590,7 +1577,6 @@ namespace PRoConEvents
                                 WritePluginConsole("Voting duration: " + ToReadableString(tempSpan) + ".", "Info", 3);
                             }
 
-
                             m_timePrevious = DateTime.Now;
                         }
 
@@ -1625,8 +1611,6 @@ namespace PRoConEvents
                     //    }
                     //    WritePluginConsole("Current Mcom is: " + currentMcom.ToString() + ". Ticket count: " + m_listCurrTeamScore[0].Score, "Info", 2);
                     //}
-
-
 
                     //m_timePrevious = DateTime.Now;
                     //m_iPrevTicket[0] = m_listCurrTeamScore[0].Score;
@@ -1668,7 +1652,6 @@ namespace PRoConEvents
                 {
                     WritePluginConsole("Current gamemode is not recognised: " + m_strCurrentGameMode, "Info", 1);
                 }
-
 
             }
             catch (Exception e)
@@ -2048,7 +2031,6 @@ namespace PRoConEvents
 
                 tempMaplist = SortMapList(tempMaplist);
 
-
                 Int32 iNumOfOptions = Math.Min(m_iNumOfMapOptions, tempMaplist.Count);
 
                 if (iNumOfOptions > 1)
@@ -2367,7 +2349,6 @@ namespace PRoConEvents
                 }
                 WritePluginConsole("^b^6" + GetMapByFilename(m_listMapOptions[winner]).PublicLevelName + " " + ConvertGamemodeToShorthand(m_listGamemodeOptions[winner]) + "^0 Won", "Info", 1);
 
-
                 m_strNextMap = GetMapByFilename(m_listMapOptions[winner]).PublicLevelName;
                 m_strNextMode = ConvertGamemodeToShorthand(m_listGamemodeOptions[winner]);
                 if (m_iNextMapDisplayInterval > 0)
@@ -2669,7 +2650,6 @@ namespace PRoConEvents
                         {
                             prob[i] += (xStop - i) * (xStop - i) * grad * 0.5;
 
-
                             WritePluginConsole("RTable: Prenorm Tip:" + i.ToString() + ": " + String.Format("{0:0.0}", prob[i]), "Info", 5);
                         }
                         else
@@ -2810,9 +2790,9 @@ namespace PRoConEvents
             String padding = "  ";
             Double txtLength = 0.0;
 
-            char[] chars = text.ToCharArray();
+            Char[] chars = text.ToCharArray();
 
-            foreach (char c in chars)
+            foreach (Char c in chars)
             {
                 Double value = 1.0;
                 if (m_dictLetterSizes.TryGetValue(c, out value))
