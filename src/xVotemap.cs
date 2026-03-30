@@ -43,6 +43,7 @@ namespace PRoConEvents
 
         // User Settings
         private Int32 m_iVoteThres = 1;
+        private String m_strVoteFailedAction = "Continue Rotation";
         private Int32 m_iRandomness = 5;
         private Int32 m_iNumOfMapOptions = 4;
         private Int32 m_iVotingDuration = 300;
@@ -792,6 +793,7 @@ namespace PRoConEvents
             lstReturn.Add(new CPluginVariable("Voting|Trigger", "enum.VotingTrigger(Manual|Automatic)", this.m_strTrigger));
             lstReturn.Add(new CPluginVariable("Voting|Uservote prefix", this.m_strHosVotePrefix.GetType(), this.m_strHosVotePrefix));
             lstReturn.Add(new CPluginVariable("Voting|Votes Threshold (votes)", this.m_iVoteThres.GetType(), this.m_iVoteThres));
+            lstReturn.Add(new CPluginVariable("Voting|Vote Failed Action", "enum.VoteFailedAction(Continue Rotation|Use Most Voted|Random From Options)", this.m_strVoteFailedAction));
             lstReturn.Add(new CPluginVariable("Voting|Voting Duration (s)", this.m_iVotingDuration.GetType(), this.m_iVotingDuration));
             lstReturn.Add(new CPluginVariable("Voting|Time between Voting End and Round End (s) (Conquest)", this.m_iStopVoteTime.GetType(), this.m_iStopVoteTime));
             lstReturn.Add(new CPluginVariable("Voting|Voting Start Time from Start of Round (s) (Carrier Assault)", this.m_iCalVoteStartTime.GetType(), this.m_iCalVoteStartTime));
@@ -840,6 +842,7 @@ namespace PRoConEvents
             lstReturn.Add(new CPluginVariable("Trigger", "enum.VotingTrigger(Manual|Automatic)", this.m_strTrigger));
             lstReturn.Add(new CPluginVariable("Uservote prefix", this.m_strHosVotePrefix.GetType(), this.m_strHosVotePrefix));
             lstReturn.Add(new CPluginVariable("Votes Threshold (votes)", this.m_iVoteThres.GetType(), this.m_iVoteThres));
+            lstReturn.Add(new CPluginVariable("Vote Failed Action", "enum.VoteFailedAction(Continue Rotation|Use Most Voted|Random From Options)", this.m_strVoteFailedAction));
             lstReturn.Add(new CPluginVariable("Voting Duration (s)", this.m_iVotingDuration.GetType(), this.m_iVotingDuration));
             lstReturn.Add(new CPluginVariable("Time between Voting End and Round End (s) (Conquest)", this.m_iStopVoteTime.GetType(), this.m_iStopVoteTime));
             lstReturn.Add(new CPluginVariable("Voting Start Time from Start of Round (s) (Carrier Assault)", this.m_iCalVoteStartTime.GetType(), this.m_iCalVoteStartTime));
@@ -983,6 +986,10 @@ namespace PRoConEvents
                 {
                     this.m_iVoteThres = 64;
                 }
+            }
+            else if (strVariable.CompareTo("Vote Failed Action") == 0)
+            {
+                this.m_strVoteFailedAction = strValue;
             }
             else if (strVariable.CompareTo("Voting Start Time from Start of Round (s) (Rush and Defuse (Elimination))") == 0 && Int32.TryParse(strValue, out iValue) == true)
             {
@@ -2365,6 +2372,50 @@ namespace PRoConEvents
             {
                 this.ExecuteCommand("procon.protected.send", "admin.say", "Votemap failed. The total number votes (" + (m_dictVoting.Count + vipvotes) + ") did not exceed the threshold (" + m_iVoteThres + ")", "all");
                 WritePluginConsole("^bVotemap failed^n. The total number votes (" + (m_dictVoting.Count + vipvotes) + ") did not exceed the threshold (" + m_iVoteThres + "), next map will not be changed.", "Info", 2);
+
+                Int32 fallbackIndex = -1;
+
+                if (m_strVoteFailedAction == "Use Most Voted")
+                {
+                    fallbackIndex = winner;
+                    WritePluginConsole("^bVote failed action:^n Using most voted map as fallback.", "Info", 2);
+                }
+                else if (m_strVoteFailedAction == "Random From Options")
+                {
+                    fallbackIndex = RandomNumber(0, m_listMapOptions.Count);
+                    WritePluginConsole("^bVote failed action:^n Randomly selecting ^6" + GetMapByFilename(m_listMapOptions[fallbackIndex]).PublicLevelName + " " + ConvertGamemodeToShorthand(m_listGamemodeOptions[fallbackIndex]) + "^0 from vote options.", "Info", 2);
+                }
+
+                if (fallbackIndex >= 0)
+                {
+                    String fallbackMapAndMode = GetMapByFilename(m_listMapOptions[fallbackIndex]).PublicLevelName;
+                    if (m_enumShowGamemode == enumBoolYesNo.Yes)
+                    {
+                        fallbackMapAndMode += " " + ConvertGamemodeToShorthand(m_listGamemodeOptions[fallbackIndex]);
+                    }
+
+                    if (disableVoteResults == enumBoolYesNo.No)
+                    {
+                        if (SayVoteResult == enumBoolYesNo.Yes)
+                        {
+                            this.ExecuteCommand("procon.protected.send", "admin.say", fallbackMapAndMode + " selected as next map (vote fallback)", "all");
+                        }
+                        if (YellVoteResult == enumBoolYesNo.Yes)
+                        {
+                            this.ExecuteCommand("procon.protected.send", "admin.yell", fallbackMapAndMode + " selected as next map (vote fallback)", m_iBannerYellDuration.ToString(), "all");
+                        }
+                    }
+
+                    m_strNextMap = GetMapByFilename(m_listMapOptions[fallbackIndex]).PublicLevelName;
+                    m_strNextMode = ConvertGamemodeToShorthand(m_listGamemodeOptions[fallbackIndex]);
+                    if (m_iNextMapDisplayInterval > 0)
+                    {
+                        this.ExecuteCommand("procon.protected.tasks.add", "taskDisplayNextMap", "90", m_iNextMapDisplayInterval.ToString(), "-1", "procon.protected.plugins.call", "xVotemap", "DisplayNextMap", "all");
+                    }
+
+                    SetMap(m_listMapOptions[fallbackIndex], m_listGamemodeOptions[fallbackIndex]);
+                    this.ExecuteCommand("procon.protected.plugins.call", "CUltimateMapManager", "VotedMapInfo", m_listMapOptions[fallbackIndex], m_listGamemodeOptions[fallbackIndex]);
+                }
             }
         }
 
