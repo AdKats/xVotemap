@@ -14,8 +14,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Text.RegularExpressions;
+
+using Flurl.Http;
 //using System.Drawing;
 
 using PRoCon.Core;
@@ -1239,8 +1240,7 @@ namespace PRoConEvents
                     DateTime updatehelper = lastupdatecheck.AddHours(3);
                     if (DateTime.Compare(updatehelper, DateTime.Now) <= 0)
                     {
-                        WebClient wc = new WebClient();
-                        String latestversion = wc.DownloadString("https://forum.myrcon.com/showthread.php?6524");
+                        String latestversion = "https://forum.myrcon.com/showthread.php?6524".GetStringAsync().Result;
 
                         latestversion = latestversion.Substring(latestversion.IndexOf("<title>") + 7);
                         latestversion = latestversion.Substring(0, latestversion.IndexOf("</title>"));
